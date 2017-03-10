@@ -1,4 +1,6 @@
 var Twitter = require('twitter');
+var Progress = require('progress');
+
 var client = new Twitter({
     consumer_key: process.env.TWITTER_API_KEY,
     consumer_secret: process.env.TWITTER_API_SECRET,
@@ -14,23 +16,24 @@ module.exports = {
 /**
  * Pull tweets down from twitter
  */
-function pullTweets(loops) {
-    loops = loops || 5;
+function pullTweets(total) {
+    total = total || 500;
+    var num = 0;
 
-    var requestBatch = function(num, lastTweet) {
+    var progress;
+
+    var requestBatch = function(id, lastTweet, errNum) {
         return new Promise(function(resolve, reject) {
-            if (num >= loops) {
+            if (num >= total || errNum > 3) {
                 resolve([]);
                 return;
             }
 
-            console.log("Requesting tweet batch "+(num+1));
-
             var params = {
-                screen_name: 'meladoodle',
-                include_rts: 0,
-                exclude_replies: 1,
-                trim_user: 1,
+                user_id: id,
+                include_rts: false,
+                exclude_replies: true,
+                trim_user: true,
                 count: 200
             };
 
@@ -39,15 +42,51 @@ function pullTweets(loops) {
             }
 
             getTweets(params).then(function(tweets) {
-                console.log("Received "+tweets.length+" items");
-                requestBatch(num + 1, tweets[tweets.length - 1]).then(function(res) {
+                if (tweets.length < 10) {
+                    errNum += 1;
+                }
+
+                num += tweets.length;
+                requestBatch(id, tweets[tweets.length - 1], errNum).then(function(res) {
                     resolve(tweets.concat(res));
+                }, function() {
+                    resolve(tweets)
                 })
+            }, function(err) {
+                console.log(err);
+                reject(err);
             })
         });
     };
 
-    return new requestBatch(0, null);
+    return new Promise(function(resolve, reject) {
+        getFollowing().then(function(res) {
+            var promises = [];
+
+            progress = new Progress(':bar', {
+                complete: '=',
+                incomplete: ' ',
+                width: 20,
+                total: total
+            });
+
+            for (var i = 0; i < res.ids.length; i++){
+                promises.push(requestBatch(res.ids[i] ));
+            }
+
+            Promise.all(promises).then(function(data) {
+                var tweets = [];
+
+                for (var i = 0; i < data.length; i++) {
+                    tweets = tweets.concat(data[i]);
+                }
+                resolve(tweets);
+            }, reject);
+        },
+        function(err) {
+            console.log(err);
+        })
+    })
 }
 
 function getTweets(params) {
@@ -64,19 +103,34 @@ function getTweets(params) {
     });
 }
 
+function getFollowing() {
+    return new Promise(function(resolve, reject) {
+        client.get('friends/ids', {
+            count: 5000
+        }, function (err, res) {
+            if (err) {
+                return reject(err);
+            }
+
+            resolve(res);
+        })
+    })
+}
+
 /**
- * Pull tweets down from twitter
+ * Post tweet to twitter
  */
 function postTweet(status) {
-    client.post('statuses/update', {
-        status: status
-    }, function (err, tweet, res) {
-        if (!err) {
-            console.log(tweet);
-            console.log(res);
-        } else {
-            console.log(err);
-        }
+    return new Promise(function(resolve, reject) {
+        client.post('statuses/update', {
+            status: status
+        }, function (err, tweet, res) {
+            if (err){
+                return reject(err);
+            }
+
+            resolve(tweet, res);
+        });
     });
 }
 
