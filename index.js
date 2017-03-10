@@ -93,7 +93,7 @@ function generateTweets(number) {
                 }
 
                 var test = chain.makeSentence({
-                    maxChars: 160,
+                    maxChars: 140,
                     tries: 25,
                     maxOverlapRatio: 0.7
                 });
