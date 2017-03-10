@@ -9,8 +9,10 @@
   },
   "author": "Carl Anderson",
   "license": "MIT",
+  "repository": "https://github.com/canderson93/TwitterBot.git",
   "dependencies": {
     "dotenv": "^4.0.0",
+    "markov-chains-text": "^1.0.0",
     "promisejs": "^0.1.3",
     "talisman": "^0.18.0",
     "twitter": "^1.7.0"
