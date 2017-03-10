@@ -1,5 +1,4 @@
 var Twitter = require('twitter');
-var Progress = require('progress');
 
 var client = new Twitter({
     consumer_key: process.env.TWITTER_API_KEY,
@@ -19,8 +18,6 @@ module.exports = {
 function pullTweets(total) {
     total = total || 500;
     var num = 0;
-
-    var progress;
 
     var requestBatch = function(id, lastTweet, errNum) {
         return new Promise(function(resolve, reject) {
@@ -62,13 +59,6 @@ function pullTweets(total) {
     return new Promise(function(resolve, reject) {
         getFollowing().then(function(res) {
             var promises = [];
-
-            progress = new Progress(':bar', {
-                complete: '=',
-                incomplete: ' ',
-                width: 20,
-                total: total
-            });
 
             for (var i = 0; i < res.ids.length; i++){
                 promises.push(requestBatch(res.ids[i] ));

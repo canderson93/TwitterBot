@@ -34,7 +34,7 @@ process.stdin.on('data', function(input) {
     }
     else if (input.match('^start$')) {
         console.log("Starting timer");
-        startTimer(60 * 1000);
+        startTimer(10 * 60 * 1000);
     }
     else if (input.match('^stop$')) {
         console.log("Stopping timer");
