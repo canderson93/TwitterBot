@@ -7,22 +7,30 @@ var Text = require('markov-chains-text').default;
 var fs = require('fs');
 
 var isReady = fs.existsSync('output.txt');
-var interval = null;
+var tweetTnterval = null;
+
+var pullInterval = null;
+var pullNum = 10000;
 
 process.stdin.resume();
 
 process.stdin.on('data', function(input) {
     input = input.toString().trim();
+    var num;
 
-    if (input.match('^quit$')) {
+    if (input.match(/^quit$/)) {
         process.stdin.pause();
         process.exit(0)
     }
-    else if (input.match('^pull$')) {
-        downloadTweets();
+    else if (input.match(/^pull [0-9]+$/)) {
+        num = input.match(/[0-9]+/);
+        num = parseInt(num);
+
+        pullNum = num;
+        downloadTweets(num);
     }
-    else if (input.match('^print [0-9]*')) {
-        var num = input.match('[0-9]+');
+    else if (input.match(/^print [0-9]+/)) {
+        num = input.match(/[0-9]+/);
         num = parseInt(num);
 
         generateTweets(num).then(function(tweets){
@@ -32,28 +40,39 @@ process.stdin.on('data', function(input) {
             console.log("----");
         });
     }
-    else if (input.match('^start$')) {
-        console.log("Starting timer");
-        startTimer(10 * 60 * 1000);
+    else if (input.match(/^start [0-9]+$/)) {
+        var time = input.match(/[0-9]+/);
+        time = parseInt(time);
+
+        console.log("Starting timer: running every "+time+" minutes");
+
+        startTimer(time * 60000);
     }
-    else if (input.match('^stop$')) {
+    else if (input.match(/^stop$/)) {
         console.log("Stopping timer");
         stopTimer();
     }
+    else if (input.match(/^post$/)) {
+        postTweet();
+    }
 });
 
-function downloadTweets() {
+function downloadTweets(number) {
     isReady = false;
-    twitter.pullTweets(10000).then(function(tweets){
+    twitter.pullTweets(number).then(function(tweets){
         console.log("Received "+tweets.length+" items");
 
         var text = "";
         for (var i = 0; i < tweets.length; i++) {
             var str = tweets[i].text;
 
-            //Strip out the urls and newlines
+            //Strip out the urls and newlines, apostrophes and quotations
+            //(because they never match properly)
+            //TODO: Work out how to keep urls
             str = str.replace(/http\S+/g, '');
-            str = str.replace('\n', ' ');
+            str = str.replace(/\n/g, ' ');
+            str = str.replace('"', '');
+            str = str.replace("'", '');
             str = str.trim();
             str = decodeString(str);
 
@@ -111,26 +130,38 @@ function generateTweets(number) {
     })
 }
 
-function startTimer(period) {
-    stopTimer();
-
-    interval = setInterval(function() {
+function postTweet() {
+    return new Promise(function(resolve, reject) {
         generateTweets(1).then(function(res) {
             var tweet = res[0];
 
             twitter.postTweet(tweet).then(function(tw, res) {
                 console.log("Tweet posted: " + tw.text);
+                resolve(tw, res);
             }, function(err) {
-                console.log("Error encountered. Stopping timer", err);
-                stopTimer();
+                reject(err);
             });
         })
+    });
+}
+
+function startTimer(period) {
+    stopTimer();
+
+    tweetTnterval = setInterval(function() {
+        postTweet().then(function() {}, function(err) {
+            console.log("Stopping Timer because of error: "+JSON.stringify(err));
+        })
     }, period);
+
+    pullInterval = setInterval(function() {
+        downloadTweets(pullNum);
+    }, period * 4);
 }
 
 function stopTimer() {
-    if (interval) {
-        clearInterval(interval);
+    if (tweetTnterval) {
+        clearInterval(tweetTnterval);
     }
 }
 
@@ -142,7 +173,3 @@ function decodeString(str) {
     ret = ret.replace(/&amp;/g, '&');
     return ret;
 }
-
-//TODO: get tweets
-//TODO: analyze tweets
-//TODO: generate new tweets
