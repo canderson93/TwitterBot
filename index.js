@@ -6,11 +6,10 @@ var Text = require('markov-chains-text').default;
 
 var fs = require('fs');
 
-var isReady = fs.existsSync('output.txt');
-var tweetTnterval = null;
+var tweetInterval = null;
 
 var pullInterval = null;
-var pullNum = 10000;
+var pullNum = parseInt(process.env.CORPUS_SIZE) || 10000;
 
 process.stdin.resume();
 
@@ -58,7 +57,7 @@ process.stdin.on('data', function(input) {
 });
 
 function downloadTweets(number) {
-    isReady = false;
+    console.log("Starting to pull tweets");
     twitter.pullTweets(number).then(function(tweets){
         console.log("Received "+tweets.length+" items");
 
@@ -86,7 +85,6 @@ function downloadTweets(number) {
                 return console.log(err);
             }
             console.log("Saved tweets to output.txt");
-            isReady = true;
         });
 
     });
@@ -94,10 +92,6 @@ function downloadTweets(number) {
 
 function generateTweets(number) {
     return new Promise(function(resolve, reject) {
-        if (!isReady) {
-            return reject("No tweets have been loaded");
-        }
-
         fs.readFile('output.txt', function(err, text) {
             text = text.toString().trim();
 
@@ -148,7 +142,7 @@ function postTweet() {
 function startTimer(period) {
     stopTimer();
 
-    tweetTnterval = setInterval(function() {
+    tweetInterval = setInterval(function() {
         postTweet().then(function() {}, function(err) {
             console.log("Stopping Timer because of error: "+JSON.stringify(err));
         })
@@ -160,8 +154,8 @@ function startTimer(period) {
 }
 
 function stopTimer() {
-    if (tweetTnterval) {
-        clearInterval(tweetTnterval);
+    if (tweetInterval) {
+        clearInterval(tweetInterval);
     }
     if (pullInterval) {
         clearInterval(pullInterval);
