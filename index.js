@@ -163,6 +163,9 @@ function stopTimer() {
     if (tweetTnterval) {
         clearInterval(tweetTnterval);
     }
+    if (pullInterval) {
+        clearInterval(pullInterval);
+    }
 }
 
 function decodeString(str) {
