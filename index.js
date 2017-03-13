@@ -10,6 +10,7 @@ var tweetInterval = null;
 
 var pullInterval = null;
 var pullNum = parseInt(process.env.CORPUS_SIZE) || 10000;
+var chain;
 
 process.stdin.resume();
 
@@ -37,6 +38,9 @@ process.stdin.on('data', function(input) {
                 console.log(tweets[i]);
             }
             console.log("----");
+        },
+        function(err) {
+            console.log(err)
         });
     }
     else if (input.match(/^start [0-9]+$/)) {
@@ -80,6 +84,7 @@ function downloadTweets(number) {
             text += str + '\n';
         }
 
+        chain = new Text(text, {stateSize: 3});
         fs.writeFile('output.txt', text, function(err) {
             if (err){
                 return console.log(err);
@@ -92,35 +97,32 @@ function downloadTweets(number) {
 
 function generateTweets(number) {
     return new Promise(function(resolve, reject) {
-        fs.readFile('output.txt', function(err, text) {
-            text = text.toString().trim();
+        if (!chain) {
+            loadChainFromFile();
+        }
+        var tweets = [];
+        var errors = 0;
 
-            var chain = new Text(text);
-            var tweets = [];
-
-            var errors = 0;
-
-            while (tweets.length < number) {
-                if (errors > (10 * number)) {
-                    return reject("Too many failed attempts. Change settings");
-                }
-
-                var test = chain.makeSentence({
-                    maxChars: 140,
-                    tries: 25,
-                    maxOverlapRatio: 0.7
-                });
-
-                if (typeof(test) !== 'string'){
-                    errors++;
-                    continue;
-                }
-
-                tweets.push(test.trim());
+        while (tweets.length < number) {
+            if (errors > (10 * number)) {
+                return reject("Too many failed attempts. Change settings");
             }
 
-            resolve(tweets);
-        });
+            var test = chain.makeSentence({
+                maxChars: 140,
+                tries: 100,
+                maxOverlapRatio: 0.7
+            });
+
+            if (typeof(test) !== 'string'){
+                errors++;
+                continue;
+            }
+
+            tweets.push(test.trim());
+        }
+
+        resolve(tweets);
     })
 }
 
@@ -148,9 +150,10 @@ function startTimer(period) {
         })
     }, period);
 
+    //Pull new tweets every 24 hours
     pullInterval = setInterval(function() {
         downloadTweets(pullNum);
-    }, period * 4);
+    }, 14400000);
 }
 
 function stopTimer() {
@@ -160,6 +163,13 @@ function stopTimer() {
     if (pullInterval) {
         clearInterval(pullInterval);
     }
+}
+
+function loadChainFromFile() {
+    console.log("Loading chain from file");
+    var text = fs.readFileSync('output.txt').toString();
+    chain = new Text(text, {stateSize: 3});
+    console.log("Chain loaded");
 }
 
 function decodeString(str) {
