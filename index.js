@@ -108,8 +108,8 @@ function generateTweets(number) {
             var test = chain.makeSentence({
                 maxChars: 140,
                 tries: 100,
-                maxOverlapRatio: 0.7,
-                maxOverlapTotal: 10
+                maxOverlapRatio: 0.75,
+                maxOverlapTotal: 12
             });
 
             if (typeof(test) !== 'string'){
