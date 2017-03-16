@@ -12,7 +12,9 @@
   "repository": "https://github.com/canderson93/TwitterBot.git",
   "dependencies": {
     "dotenv": "^4.0.0",
+    "markov-chains": "^1.0.2",
     "markov-chains-text": "^1.0.0",
+    "sbd": "git+https://github.com/canderson93/sbd.git",
     "twitter": "^1.7.0"
   }
 }

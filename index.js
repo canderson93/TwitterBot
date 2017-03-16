@@ -2,7 +2,7 @@
 require('dotenv').config();
 
 var twitter = require('./src/twitter');
-var Text = require('markov-chains-text').default;
+var markov = require('./src/markov');
 
 var fs = require('fs');
 
@@ -72,10 +72,7 @@ function downloadTweets(number) {
             //Strip out the urls and newlines, apostrophes and quotations
             //(because they never match properly)
             //TODO: Work out how to keep urls
-            str = str.replace(/http\S+/g, '');
             str = str.replace(/\n/g, ' ');
-            str = str.replace('"', '');
-            str = str.replace("'", '');
             str = str.trim();
             str = decodeString(str);
 
@@ -84,7 +81,7 @@ function downloadTweets(number) {
             text += str + '\n';
         }
 
-        chain = new Text(text, {stateSize: 3});
+        chain = markov.generateMarkovChain(text, 3);
         fs.writeFile('output.txt', text, function(err) {
             if (err){
                 return console.log(err);
@@ -111,7 +108,8 @@ function generateTweets(number) {
             var test = chain.makeSentence({
                 maxChars: 140,
                 tries: 100,
-                maxOverlapRatio: 0.7
+                maxOverlapRatio: 0.7,
+                maxOverlapTotal: 10
             });
 
             if (typeof(test) !== 'string'){
@@ -168,7 +166,7 @@ function stopTimer() {
 function loadChainFromFile() {
     console.log("Loading chain from file");
     var text = fs.readFileSync('output.txt').toString();
-    chain = new Text(text, {stateSize: 3});
+    chain = markov.generateMarkovChain(text, 3);
     console.log("Chain loaded");
 }
 
@@ -180,3 +178,13 @@ function decodeString(str) {
     ret = ret.replace(/&amp;/g, '&');
     return ret;
 }
+
+generateTweets(1).then(function(tweets){
+        for (var i = 0; i < tweets.length; i++) {
+            console.log(tweets[i]);
+        }
+        console.log("----");
+    },
+    function(err) {
+        console.log(err)
+    });
