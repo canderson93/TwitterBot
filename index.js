@@ -178,13 +178,3 @@ function decodeString(str) {
     ret = ret.replace(/&amp;/g, '&');
     return ret;
 }
-
-generateTweets(1).then(function(tweets){
-        for (var i = 0; i < tweets.length; i++) {
-            console.log(tweets[i]);
-        }
-        console.log("----");
-    },
-    function(err) {
-        console.log(err)
-    });
