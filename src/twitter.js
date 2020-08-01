@@ -31,7 +31,8 @@ function pullTweets(total) {
                 include_rts: false,
                 exclude_replies: true,
                 trim_user: true,
-                count: 200
+                count: 200,
+                tweet_mode: "extended"
             };
 
             if (lastTweet) {

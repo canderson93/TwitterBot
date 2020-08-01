@@ -67,7 +67,7 @@ function downloadTweets(number) {
 
         var text = "";
         for (var i = 0; i < tweets.length; i++) {
-            var str = tweets[i].text;
+            var str = tweets[i].full_text;
 
             //Strip out the urls and newlines, apostrophes and quotations
             //(because they never match properly)
@@ -106,10 +106,10 @@ function generateTweets(number) {
             }
 
             var test = chain.makeSentence({
-                maxChars: 140,
+                maxChars: 280,
                 tries: 100,
                 maxOverlapRatio: 0.75,
-                maxOverlapTotal: 12
+                // maxOverlapTotal: 7
             });
 
             if (typeof(test) !== 'string'){
